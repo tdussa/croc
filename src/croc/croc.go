@@ -220,9 +220,24 @@ func (c *Client) sendCollectFiles(options TransferOptions) (err error) {
 			}
 			log.Debugf("%+v", c.FilesToTransfer[i])
 		}
+		if (fstats.Mode()&os.ModeDevice != 0) &&
+		   (fstats.Mode()&os.ModeCharDevice == 0) {
+			file, err := os.Open(fullPath)
+			if err != nil {
+				fmt.Printf("error opening %s: %s\n", fullPath, err)
+				os.Exit(1)
+			}
+			pos, err := file.Seek(0, io.SeekEnd)
+			if err != nil {
+				fmt.Printf("error seeking to end of %s: %s\n", fullPath, err)
+				os.Exit(1)
+			}
+			c.FilesToTransfer[i].Size = pos
+			file.Close()
+		}
 
 		c.FilesToTransfer[i].Hash, err = utils.HashFile(fullPath)
-		totalFilesSize += fstats.Size()
+		totalFilesSize += c.FilesToTransfer[i].Size
 		if err != nil {
 			return
 		}
